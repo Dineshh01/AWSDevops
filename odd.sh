@@ -1,6 +1,6 @@
 #!/bin/bash
 
-read -p "enter the number " num
+read -p "enter the value " num
 
 if [$(expr $num % 2) == 0]:
 then
