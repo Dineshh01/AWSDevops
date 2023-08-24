@@ -112,7 +112,7 @@
 
     - name: Reboot server if needed
       command: /usr/sbin/reboot
-      async: 1
+      async: 1800
       poll: 0
       become: yes
       ignore_errors: yes
