@@ -1,7 +1,7 @@
 ---
 
 - name: Update Samsung SSD 980 PRO Firmware
-  hosts: QAServers
+  hosts: all
   become: yes
 
   tasks:
@@ -118,15 +118,15 @@
         chdir: "/tmp/"
       when: inventory_hostname in groups['QAServers']
       register: firmware_version_output    
-
+    
     - name: Start MariaDB
       ansible.builtin.systemd:
         name: mariadb
-        state: started 
-      ignore errors: yes  
+        state: started
+      ignore_errors: yes
 
     - name: Start ProxySQL
       ansible.builtin.systemd:
         name: proxysql
         state: started
-      ignore errors: yes
+      ignore_errors: yes  
