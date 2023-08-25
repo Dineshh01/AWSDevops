@@ -1,7 +1,7 @@
 ---
 
 - name: Update Samsung SSD 980 PRO Firmware
-  hosts: qaservers
+  hosts: QAServers
   become: yes
 
   tasks:
