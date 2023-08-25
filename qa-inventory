@@ -1,4 +1,4 @@
-[QASERVERS]
+[QAServers]
 QAServer01 ansible_host=IP ansible_ssh_user=Short_name ansible_become=yes ansible_become_user=root ansible_become_pass=Password
 QAServer02 ansible_host=IP ansible_ssh_user=Short_name ansible_become=yes ansible_become_user=root ansible_become_pass=Password
 
