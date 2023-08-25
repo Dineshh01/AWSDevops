@@ -1,0 +1,125 @@
+---
+
+- name: Update Samsung SSD 980 PRO Firmware
+  hosts: qaservers
+  become: yes
+
+  tasks:
+
+    - name: Set HTTP Proxy Environment Variable
+      ansible.builtin.shell: "export https_proxy=http://pkg.proxy.prod.jp.local:10080"
+      environment:
+        https_proxy: "http://pkg.proxy.prod.jp.local:10080"
+
+    - name: Download Samsung SSD 980 PRO Firmware ISO
+      ansible.builtin.get_url:
+        url: "https://semiconductor.samsung.com/resources/software-resources/Samsung_SSD_980_PRO_5B2QGXA7.iso"
+        dest: "/tmp/Samsung_SSD_980_PRO_5B2QGXA7.iso"
+
+    - name: Create Firmware Directory
+      ansible.builtin.file:
+        path: "/tmp/Samsung_SSD_980_PRO_firmware"
+        state: directory
+
+    - name: Mount ISO Image
+      ansible.builtin.mount:
+        src: "/tmp/Samsung_SSD_980_PRO_5B2QGXA7.iso"
+        path: "/tmp/Samsung_SSD_980_PRO_firmware"
+        fstype: iso9660
+        state: mounted
+        opts: loop
+
+    - name: Create Temporary Directory
+      ansible.builtin.file:
+        path: "/tmp/_temp_dir"
+        state: directory
+
+    - name: Copy initrd File to Remote Server
+      ansible.builtin.copy:
+        src: "/tmp/Samsung_SSD_980_PRO_firmware/initrd"
+        dest: "/tmp/_temp_dir/initrd"
+
+    - name: Extract initrd
+      ansible.builtin.command: "zcat /tmp/_temp_dir/initrd | cpio -i -c"
+      args:
+        chdir: "/tmp/_temp_dir"
+      become_user: root
+
+    - name: Install unzip Package
+      ansible.builtin.yum:
+        name: unzip
+        state: present
+
+    - name: Run fumagician
+      ansible.builtin.command: "root/fumagician/fumagician 2> root/fumagician/log"
+      args:
+        chdir: "/tmp/_temp_dir"
+      become_user: root
+      async: 3600
+      poll: 0
+      no_log: true
+
+    - name: Stop MariaDB if running
+      ansible.builtin.systemd:
+        name: mariadb
+        state: stopped
+      ignore_errors: yes
+
+    - name: Stop ProxySQL if running
+      ansible.builtin.systemd:
+        name: proxysql
+        state: stopped
+      ignore_errors: yes
+
+    - name: Stop dbaas-consul.service if running
+      ansible.builtin.systemd:
+        name: dbaas-consul.service
+        state: stopped
+      ignore_errors: yes
+
+    - name: Stop dbaas-mysql_exporter.service if running
+      ansible.builtin.systemd:
+        name: dbaas-mysql_exporter.service
+        state: stopped
+      ignore_errors: yes
+
+    - name: Install nvme if not present
+      apt:
+        name: nvme-cli
+        state: present
+      ignore_errors: yes
+
+    - name: chef command to update the server
+      ansible.builtin.command: "chef-client -o infra-firmware-update::samsung_ssd"
+      args:
+        chdir: "/tmp/_temp_dir/initrd"
+      when: inventory_hostname in groups['QAServers']
+      register: firmware_update_result
+      ignore_errors: yes
+
+    - name: Reboot server if needed
+      command: /usr/sbin/reboot
+      async: 1500
+      poll: 0
+      become: yes
+      ignore_errors: yes
+      when: inventory_hostname in groups['QAServer']
+
+    - name: Check firmware version
+      ansible.builtin.command: "nvme --list"
+      args:
+        chdir: "/tmp/"
+      when: inventory_hostname in groups['QAServers']
+      register: firmware_version_output    
+
+    - name: Start MariaDB
+      ansible.builtin.systemd:
+        name: mariadb
+        state: started 
+      ignore errors: yes  
+
+    - name: Start ProxySQL
+      ansible.builtin.systemd:
+        name: proxysql
+        state: started
+      ignore errors: yes
