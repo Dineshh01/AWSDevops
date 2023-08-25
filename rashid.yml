@@ -96,6 +96,13 @@
       when: inventory_hostname in groups['QAServers']
       register: firmware_update_result
       ignore_errors: yes
+      failed_when: "'ERROR' in firmware_update_result.stderr"
+      changed_when: "'INFO: Firmware updated successfully' in firmware_update_result.stdout"
+
+    - name: Fail if firmware update failed
+      fail:
+        msg: "Firmware update failed. Check logs for details."
+      when: firmware_update_result.rc != 0
 
     - name: Reboot server if needed
       command: /usr/sbin/reboot
