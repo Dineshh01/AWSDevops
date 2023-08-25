@@ -1,8 +1,4 @@
-[QAServers]
-QAServer01 ansible_host=IP ansible_ssh_user=Short_name ansible_become=yes ansible_become_user=root ansible_become_pass=Password
-QAServer02 ansible_host=IP ansible_ssh_user=Short_name ansible_become=yes ansible_become_user=root ansible_become_pass=Password
-
-[dev_servers]
-devserver1 ansible_host=IP ansible_ssh_user=Short_name ansible_become=yes ansible_become_user=root ansible_become_pass=Password
-devserver2 ansible_host=IP ansible_ssh_user=Short_name ansible_become=yes ansible_become_user=root ansible_become_pass=Password
+[qaservers]
+omnia-futako-qa-001.dbaas.jpe2z.dcnw.rakuten ansible_ssh_user=user ansible_ssh_pass=password ansible_become=yes ansible_become_pass=root password
+omnia-futako-qa-002.dbaas.jpe2z.dcnw.rakuten ansible_ssh_user=user ansible_ssh_pass=password ansible_become=yes ansible_become_pass=root password
 
