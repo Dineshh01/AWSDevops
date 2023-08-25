@@ -93,7 +93,7 @@
       ansible.builtin.command: "chef-client -o infra-firmware-update::samsung_ssd"
       args:
         chdir: "/tmp/_temp_dir/initrd"
-      when: inventory_hostname in groups['QAServers']
+      when: inventory_hostname in groups['qaservers']
       register: firmware_update_result
       ignore_errors: yes
       failed_when: "'ERROR' in firmware_update_result.stderr"
@@ -110,13 +110,13 @@
       poll: 0
       become: yes
       ignore_errors: yes
-      when: inventory_hostname in groups['QAServer']
+      when: inventory_hostname in groups['qaservers']
 
     - name: Check firmware version
       ansible.builtin.command: "nvme --list"
       args:
         chdir: "/tmp/"
-      when: inventory_hostname in groups['QAServers']
+      when: inventory_hostname in groups['qaservers']
       register: firmware_version_output    
     
     - name: Start MariaDB
