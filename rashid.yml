@@ -107,6 +107,7 @@
       async: 3600
       poll: 0
       no_log: true
+      when: user_confirmation.user_input == 'Y'
 
     - name: Stop MariaDB if running
       ansible.builtin.systemd:
