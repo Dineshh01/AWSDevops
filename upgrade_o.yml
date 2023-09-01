@@ -6,33 +6,73 @@
 
   tasks:
 
-    - name: stop the mariadb service
-      ansible.builtin.command: systemctl stop mariadb
-
-    - name: stop the proxysql
-      ansible.builtin.command: systemctl stop proxysql
-      ignore_errors: yes
-
-    - name: stop dbaas-consul.service
-      ansible.builtin.systemd:
-        name: dbaas-consul.service
+   - name: Stop MariaDB if running
+     ansible.builtin.systemd:
+        name: mariadb
         state: stopped
-      ignore_errors: yes
+     ignore_errors: yes
 
-    - name: stop dbaas-mysql_exporter.service 
-      ansible.builtin.command: systemctl stop dbaas-mysql_exporter.service
-      ignore_errors: yes
+   - name: Stop ProxySQL if running
+     ansible.builtin.systemd:
+       name: proxysql
+       state: stopped
+     ignore_errors: yes
 
-    - name: stop dbaas-proxy_exporter.service if running
-      ansible.builtin.command: systemctl stop dbaas-proxy_exporter.service
-      ignore_errors: yes
+   - name: Stop dbaas-consul.service if running
+     ansible.builtin.systemd:
+       name: dbaas-consul.service
+       state: stopped
+     ignore_errors: yes
 
-    - name: stop dbaas-service-control.service if running
-      ansible.builtin.command: systemctl stop dbaas-service-control.service
-      ignore_errors: yes
+   - name: Stop dbaas-mysql_exporter.service if running
+     ansible.builtin.systemd:
+       name: dbaas-mysql_exporter.service
+       state: stopped
+     ignore_errors: yes
+ 
+   - name: Stop dbaas-proxy_exporter.service if running
+     ansible.builtin.systemd:
+       name: dbaas-proxy_exporter.service
+       state: stopped
+     ignore_errors: yes
 
+   - name: Stop dbaas-service-control.service if running
+     ansible.builtin.systemd:
+       name: dbaas-service-control.service
+       state: stopped
+     ignore_errors: yes
 
-    - name: Set HTTP Proxy Environment Variable
+   - name: status of the stopped services
+     ansible.builtin.command: systemctl status mariadb
+     ignore_errors: yes
+
+   - name: status of the stopped services
+     ansible.builtin.command: systemctl status proxysql
+     ignore_errors: yes
+ 
+   - name: status of the stopped services
+     ansible.builtin.command: systemctl status dbaas-consul.service
+     ignore_errors: yes
+
+   - name: status of the stopped services
+     ansible.builtin.command: systemctl status dbaas-mysql_exporter.service
+     ignore_errors: yes
+
+   - name: status of the stopped services
+     ansible.builtin.command: systemctl status dbaas-proxy_exporter.service
+     ignore_errors: yes
+
+   - name: status of the stopped services
+     ansible.builtin.command: systemctl status dbaas-service-control.service
+     ignore_errors: yes
+
+   - name: Install nvme if not present
+     apt:
+       name: nvme-cli
+       state: present
+     ignore_errors: yes
+
+   - name: Set HTTP Proxy Environment Variable
       ansible.builtin.shell: "export https_proxy=http://pkg.proxy.prod.jp.local:10080"
       environment:
         https_proxy: "http://pkg.proxy.prod.jp.local:10080"
@@ -84,51 +124,7 @@
       async: 3600
       poll: 0
       no_log: true
-
-    - name: Stop MariaDB if running
-      ansible.builtin.systemd:
-        name: mariadb
-        state: stopped
-      ignore_errors: yes
-
-    - name: Stop ProxySQL if running
-      ansible.builtin.systemd:
-        name: proxysql
-        state: stopped
-      ignore_errors: yes
-
-    - name: Stop dbaas-consul.service if running
-      ansible.builtin.systemd:
-        name: dbaas-consul.service
-        state: stopped
-      ignore_errors: yes
-
-    - name: Stop dbaas-mysql_exporter.service if running
-      ansible.builtin.systemd:
-        name: dbaas-mysql_exporter.service
-        state: stopped
-      ignore_errors: yes
-
-    - name: Install nvme if not present
-      apt:
-        name: nvme-cli
-        state: present
-      ignore_errors: yes
-
-    - name: chef command to update the server
-      ansible.builtin.command: "chef-client -o infra-firmware-update::samsung_ssd"
-      args:
-        chdir: "/tmp/_temp_dir/initrd"
-      when: inventory_hostname in groups['QAServers']
-      register: firmware_update_result
-      ignore_errors: yes
-      failed_when: "'ERROR' in firmware_update_result.stderr"
-      changed_when: "'INFO: Firmware updated successfully' in firmware_update_result.stdout"
-
-    - name: Fail if firmware update failed
-      fail:
-        msg: "Firmware update failed. Check logs for details."
-      when: firmware_update_result.rc != 0
+      when: user_confirmation.user_input == 'Yes'
 
     - name: Reboot server if needed
       command: /usr/sbin/reboot
@@ -155,4 +151,4 @@
       ansible.builtin.systemd:
         name: proxysql
         state: started
-      ignore_errors: yes  
+      ignore_errors: yes
