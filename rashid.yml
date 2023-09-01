@@ -31,6 +31,29 @@
       ansible.builtin.command: systemctl stop dbaas-service-control.service
       ignore_errors: yes
 
+    - name: checking the status of the mariadb service
+      ansible.builtin.command: systemctl status mariadb
+      ignore_errors: yes
+
+    - name: checking the status of the mariadb service
+      ansible.builtin.command: systemctl status proxysql
+      ignore_errors: yes
+
+    - name: checking the status of the mariadb service
+      ansible.builtin.command: systemctl status dbaas-mysql_exporter.service
+      ignore_errors: yes
+
+    - name: checking the status of the mariadb service
+      ansible.builtin.command: systemctl status dbaas-consul.service
+      ignore_errors: yes
+
+    - name: checking the status of the mariadb service
+      ansible.builtin.command: systemctl status dbaas-proxy_exporter.service
+      ignore_errors: yes
+
+    - name: checking the status of the mariadb service
+      ansible.builtin.command: systemctl status dbaas-service-control.service
+      ignore_errors: yes
 
     - name: Set HTTP Proxy Environment Variable
       ansible.builtin.shell: "export https_proxy=http://pkg.proxy.prod.jp.local:10080"
