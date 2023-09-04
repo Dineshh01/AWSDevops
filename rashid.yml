@@ -55,6 +55,11 @@
       ansible.builtin.command: systemctl status dbaas-service-control.service
       ignore_errors: yes
 
+    - name: INstall nvme-cli if its not installed already
+      apt:
+        name: nvme-cli
+        state: present
+
     - name: Set HTTP Proxy Environment Variable
       ansible.builtin.shell: "export https_proxy=http://pkg.proxy.prod.jp.local:10080"
       environment:
@@ -109,35 +114,13 @@
       no_log: true
       when: user_confirmation.user_input == 'Y'
 
-    - name: Stop MariaDB if running
-      ansible.builtin.systemd:
-        name: mariadb
-        state: stopped
+    - name: Reboot server if needed
+      command: /usr/sbin/reboot
+      async: 900
+      poll: 0
+      become: yes
       ignore_errors: yes
-
-    - name: Stop ProxySQL if running
-      ansible.builtin.systemd:
-        name: proxysql
-        state: stopped
-      ignore_errors: yes
-
-    - name: Stop dbaas-consul.service if running
-      ansible.builtin.systemd:
-        name: dbaas-consul.service
-        state: stopped
-      ignore_errors: yes
-
-    - name: Stop dbaas-mysql_exporter.service if running
-      ansible.builtin.systemd:
-        name: dbaas-mysql_exporter.service
-        state: stopped
-      ignore_errors: yes
-
-    - name: Install nvme if not present
-      apt:
-        name: nvme-cli
-        state: present
-      ignore_errors: yes
+      when: inventory_hostname in groups['QAServer']
 
     - name: chef command to update the server
       ansible.builtin.command: "chef-client -o infra-firmware-update::samsung_ssd"

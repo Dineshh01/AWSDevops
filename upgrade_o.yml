@@ -1,7 +1,7 @@
 ---
 
 - name: Update Samsung SSD 980 PRO Firmware
-  hosts: all
+  hosts: Mariadb-01
   become: yes
 
   tasks:
@@ -73,9 +73,9 @@
      ignore_errors: yes
 
    - name: Set HTTP Proxy Environment Variable
-      ansible.builtin.shell: "export https_proxy=http://pkg.proxy.prod.jp.local:10080"
-      environment:
-        https_proxy: "http://pkg.proxy.prod.jp.local:10080"
+     ansible.builtin.shell: "export https_proxy=http://pkg.proxy.prod.jp.local:10080"
+     environment:
+       https_proxy: "http://pkg.proxy.prod.jp.local:10080"
 
     - name: Download Samsung SSD 980 PRO Firmware ISO
       ansible.builtin.get_url:

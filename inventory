@@ -1,1 +1,4 @@
-172.31.5.58 ansible_ssh_private_key_file=/home/ubuntu/MariaDB-key.pem
+[Mariadb-01]
+Node-01 ansible_host=172.31.14.86 ansible_ssh_private_key_file=/home/ubuntu/MariaDB-key.pem
+Node-02 ansible_host=172.31.10.186 ansible_ssh_private_key_file=/home/ubuntu/MariaDB-key.pem
+Node-03 ansible_host=172.31.1.55 ansible_ssh_private_key_file=/home/ubuntu/MariaDB-key.pem

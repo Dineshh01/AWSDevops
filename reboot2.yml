@@ -1,0 +1,26 @@
+---
+- name: Reboot servers one by one
+  hosts: all
+  serial: 1  
+  tasks:
+    - name: Reboot the server
+      ansible.builtin.reboot:
+        reboot_timeout: 120
+      async: 120
+      poll: 0
+      become: yes
+
+    - name: Wait for the server to become reachable
+      wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 22
+        delay: 120
+        timeout: 120
+
+- name: Final tasks
+  hosts: all
+  tasks:
+    - name: Perform final tasks
+      debug:
+        msg: "Server {{ inventory_hostname }} is up and can be accessed."
+

@@ -1,0 +1,29 @@
+---
+- name: Reboot servers one by one
+  hosts: all
+  serial: 1 
+  tasks:
+    - name: Reboot the server
+      ansible.builtin.reboot:
+        reboot_timeout: 120
+      async: 120
+      poll: 0
+      become: yes
+
+    - name: Log in to the server after reboot
+      ansible.builtin.wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 22
+        delay: 60
+        timeout: 120  # Adjust this timeout as needed
+      delegate_to: localhost
+      become: yes
+      ignore_errors: yes
+
+- name: Final tasks
+  hosts: all # List all your Mariadb servers here
+  tasks:
+    - name: Perform final tasks
+      debug:
+        msg: "Server {{ inventory_hostname }} is up and can be accessed."
+
