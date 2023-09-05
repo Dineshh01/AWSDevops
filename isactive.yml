@@ -1,0 +1,14 @@
+---
+- name: Update Samsung SSD 980 PRO Firmware
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Check if mariadb service is active
+      ansible.builtin.command: systemctl is-active mariadb
+      register: mariadb_status
+      ignore_errors: yes
+
+    - name: Stop mariadb service if active
+      ansible.builtin.command: systemctl stop mariadb
+      when: "'active' in mariadb_status.stdout"

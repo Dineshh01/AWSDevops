@@ -1,0 +1,22 @@
+---
+- name: Install MariaDB on servers
+  hosts: all
+  become: yes
+
+  tasks:
+
+    - name: Adding the repo-access key to the servers
+      command: sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
+
+    - name: Adding the repo to the servers
+      command: sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
+
+    - name: Updating the servers
+      apt:
+        update_cache: yes
+
+    - name: Installing MariaDB on the servers
+      apt:
+        name: mariadb-server
+        state: present
+

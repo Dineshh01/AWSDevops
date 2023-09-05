@@ -10,17 +10,11 @@
       poll: 0
       become: yes
 
-    - name: Reboot
-      ansible.builtin.reboot: reboot_timeout=600
-      become: true
-
-    - name: Ping Connection
+    - name: ping the server
       ansible.builtin.ping:    
 
-    - name: start the service
-      systemd:
-        name: mysql
-        state: started
+    - name: create a new file to test
+      ansible.builtin.command: "touch ansible_test"
 
 - name: Final tasks
   hosts: all

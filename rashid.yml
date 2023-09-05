@@ -7,53 +7,54 @@
 
   tasks:
 
-    - name: stop the mariadb service
+    - name: Check if mariadb service is active
+      ansible.builtin.command: systemctl is-active mariadb
+      register: mariadb_status
+      ignore_errors: yes
+
+    - name: Stop mariadb service if active
       ansible.builtin.command: systemctl stop mariadb
+      when: "'active' in mariadb_status.stdout"
 
-    - name: stop the proxysql
+    - name: Check if ProxySQL service is active
+      ansible.builtin.command: systemctl is-active proxysql
+      register: proxysql_status
+      ignore_errors: yes
+
+    - name: Stop Proxysql service if active
       ansible.builtin.command: systemctl stop proxysql
+      when: "'active' in proxysql_status.stdout"
+
+    - name: Check if dbaas-consul.service is active
+      ansible.builtin.command: systemctl is-active dbaas-consul.service
+      register: dbaas-consul.service_status
       ignore_errors: yes
 
-    - name: stop dbaas-consul.service
-      ansible.builtin.systemd:
-        name: dbaas-consul.service
-        state: stopped
+    - name: Stop dbaas-consul.service if active
+      ansible.builtin.command: systemctl stop dbaas-consul.service
+      when: "'active' in dbaas-consul.service_status.stdout"
+
+    - name: Check if dbaas-mysql_exporter.service is active
+      ansible.builtin.command: systemctl is-active dbaas-mysql_exporter.service
+      register: dbaas-mysql_exporter.service_status
       ignore_errors: yes
 
-    - name: stop dbaas-mysql_exporter.service 
+    - name: Stop dbaas-mysql_exporter.service if active
       ansible.builtin.command: systemctl stop dbaas-mysql_exporter.service
+      when: "'active' in dbaas-mysql_exporter.service_status.stdout"
+
+    - name: Check if dbaas-proxy_exporter.service is active
+      ansible.builtin.command: systemctl is-active dbaas-proxy_exporter.service
+      register: dbaas-proxy_exporter.service_status
       ignore_errors: yes
 
-    - name: stop dbaas-proxy_exporter.service if running
+    - name: Stop dbaas-proxy_exporter.service if active
       ansible.builtin.command: systemctl stop dbaas-proxy_exporter.service
-      ignore_errors: yes
+      when: "'active' in dbaas-proxy_exporter.service_status.stdout"
 
-    - name: stop dbaas-service-control.service if running
-      ansible.builtin.command: systemctl stop dbaas-service-control.service
-      ignore_errors: yes
-
-    - name: checking the status of the mariadb service
-      ansible.builtin.command: systemctl status mariadb
-      ignore_errors: yes
-
-    - name: checking the status of the mariadb service
-      ansible.builtin.command: systemctl status proxysql
-      ignore_errors: yes
-
-    - name: checking the status of the mariadb service
-      ansible.builtin.command: systemctl status dbaas-mysql_exporter.service
-      ignore_errors: yes
-
-    - name: checking the status of the mariadb service
-      ansible.builtin.command: systemctl status dbaas-consul.service
-      ignore_errors: yes
-
-    - name: checking the status of the mariadb service
-      ansible.builtin.command: systemctl status dbaas-proxy_exporter.service
-      ignore_errors: yes
-
-    - name: checking the status of the mariadb service
-      ansible.builtin.command: systemctl status dbaas-service-control.service
+    - name: Check if dbaas-service-control.service is active
+      ansible.builtin.command: systemctl is-active dbaas-service-control.service
+      register: dbaas-service-control.service_status
       ignore_errors: yes
 
     - name: INstall nvme-cli if its not installed already
@@ -115,36 +116,24 @@
       no_log: true
       when: user_confirmation.user_input == 'Y'
 
-    - name: Reboot server if needed
-      command: /usr/sbin/reboot
-      async: 900
+    - name: Reboot the server
+      ansible.builtin.reboot:
+        reboot_timeout: 300
+      async: 120
       poll: 0
       become: yes
-      ignore_errors: yes
-      when: inventory_hostname in groups['QAServer']
 
-    - name: chef command to update the server
-      ansible.builtin.command: "chef-client -o infra-firmware-update::samsung_ssd"
-      args:
-        chdir: "/tmp/_temp_dir/initrd"
-      when: inventory_hostname in groups['QAServers']
-      register: firmware_update_result
-      ignore_errors: yes
-      failed_when: "'ERROR' in firmware_update_result.stderr"
-      changed_when: "'INFO: Firmware updated successfully' in firmware_update_result.stdout"
+    - name: ping the server
+      ansible.builtin.ping:
+
+    - name: Perform final tasks
+      debug:
+        msg: "Server {{ inventory_hostname }} is up and can be accessed."
 
     - name: Fail if firmware update failed
       fail:
         msg: "Firmware update failed. Check logs for details."
       when: firmware_update_result.rc != 0
-
-    - name: Reboot server if needed
-      command: /usr/sbin/reboot
-      async: 900
-      poll: 0
-      become: yes
-      ignore_errors: yes
-      when: inventory_hostname in groups['QAServer']
 
     - name: Check firmware version
       ansible.builtin.command: "nvme --list"
