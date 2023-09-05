@@ -57,6 +57,10 @@
       register: dbaas-service-control.service_status
       ignore_errors: yes
 
+    - name: Stop dbaas-service-control.service if active
+      ansible.builtin.command: systemctl stop dbaas-service-control.service
+      when: "'active' in dbaas-service-control.service_status.stdout"    
+
     - name: INstall nvme-cli if its not installed already
       apt:
         name: nvme-cli
@@ -173,4 +177,28 @@
       ansible.builtin.systemd:
         name: proxysql
         state: started
-      ignore_errors: yes  
+      ignore_errors: yes 
+
+    - name: Start dbaas-consul.service
+      ansible.builtin.systemd:
+        name: dbaas-consul.service
+        state: started
+      ignore_errors: yes
+
+    - name: Start dbaas-mysql_exporter.service
+      ansible.builtin.systemd:
+        name: dbaas-mysql_exporter.service
+        state: started
+      ignore_errors: yes
+
+    - name: Start dbaas-proxy_exporter.service
+      ansible.builtin.systemd:
+        name: dbaas-proxy_exporter.service
+        state: started
+      ignore_errors: yes
+
+    - name: Start dbaas-service-control.service
+      ansible.builtin.systemd:
+        name: dbaas-service-control.service
+        state: started
+      ignore_errors: yes
