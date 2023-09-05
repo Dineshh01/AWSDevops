@@ -1,9 +1,77 @@
 ---
+
 - name: Update Samsung SSD 980 PRO Firmware
   hosts: all
   become: yes
 
   tasks:
+
+    - name: stop the mariadb service
+      ansible.builtin.command: systemctl stop mariadb
+
+    - name: stop the proxysql
+      ansible.builtin.command: systemctl stop proxysql
+      ignore_errors: yes
+
+    - name: stop dbaas-consul.service
+      ansible.builtin.systemd:
+        name: dbaas-consul.service
+        state: stopped
+      ignore_errors: yes
+
+    - name: stop dbaas-mysql_exporter.service 
+      ansible.builtin.command: systemctl stop dbaas-mysql_exporter.service
+      ignore_errors: yes
+
+    - name: stop dbaas-proxy_exporter.service if running
+      ansible.builtin.command: systemctl stop dbaas-proxy_exporter.service
+      ignore_errors: yes
+
+    - name: stop dbaas-service-control.service if running
+      ansible.builtin.command: systemctl stop dbaas-service-control.service
+      ignore_errors: yes
+
+    - name: checking the status of the mariadb service
+      ansible.builtin.command: systemctl status mariadb
+      ignore_errors: yes
+
+    - name: checking the status of the mariadb service
+      ansible.builtin.command: systemctl status proxysql
+      ignore_errors: yes
+
+    - name: checking the status of the mariadb service
+      ansible.builtin.command: systemctl status dbaas-mysql_exporter.service
+      ignore_errors: yes
+
+    - name: checking the status of the mariadb service
+      ansible.builtin.command: systemctl status dbaas-consul.service
+      ignore_errors: yes
+
+    - name: checking the status of the mariadb service
+      ansible.builtin.command: systemctl status dbaas-proxy_exporter.service
+      ignore_errors: yes
+
+    - name: checking the status of the mariadb service
+      ansible.builtin.command: systemctl status dbaas-service-control.service
+      ignore_errors: yes
+
+    - name: INstall nvme-cli if its not installed already
+      apt:
+        name: nvme-cli
+        state: present
+
+- name: Reboot servers one by one
+  hosts: all
+  serial: 1
+  tasks:
+    - name: Reboot the server
+      ansible.builtin.reboot:
+        reboot_timeout: 120
+      async: 120
+      poll: 0
+      become: yes
+
+
     - name: Set HTTP Proxy Environment Variable
       ansible.builtin.shell: "export https_proxy=http://pkg.proxy.prod.jp.local:10080"
       environment:
@@ -55,66 +123,55 @@
       become_user: root
       async: 3600
       poll: 0
-
-    - name: Checking for any Media errors before the upgrade
-      command: nvme --smart-log /dev/nvme0n1 | grep media_errors
-      register: media_error_check
-      ignore_errors: yes
-
-    - name: Cancel the operation if media error occurs
-      fail:
-        msg: "Media errors detected. Firmware update cannot proceed."
-      when: "'media_errors' in media_error_check.stdout"  # Changed 'Media error' to 'media_errors'
-
-    - name: Stop MariaDB if running
-      ansible.builtin.systemd:
-        name: mariadb
-        state: stopped
-      ignore_errors: yes
-
-    - name: Stop ProxySQL if running
-      ansible.builtin.systemd:
-        name: proxysql
-        state: stopped
-      ignore_errors: yes
-
-    - name: Stop dbaas-consul.service if running
-      ansible.builtin.systemd:
-        name: dbaas-consul.service
-        state: stopped
-      ignore_errors: yes
-
-    - name: Stop dbaas-mysql_exporter.service if running
-      ansible.builtin.systemd:
-        name: dbaas-mysql_exporter.service
-        state: stopped
-      ignore_errors: yes
-
-    - name: Install nvme if not present
-      ansible.builtin.yum:  # Changed 'apt' to 'yum' for CentOS/RedHat
-        name: nvme-cli
-        state: present
-      ignore_errors: yes
-
-    - name: Copy firmware update files to the server
-      copy:
-        src: path  # Please specify the actual path
-        dest: /tmp/
-      when: inventory_hostname in groups['your_server_group']
-
-    - name: Run firmware update
-      command: /path/to/firmware/update/command
-      args:
-        chdir: /tmp/
-      when: inventory_hostname in groups['your_server_group']
-      register: firmware_update_result
-      ignore_errors: yes
+      no_log: true
+      when: user_confirmation.user_input == 'Y'
 
     - name: Reboot server if needed
       command: /usr/sbin/reboot
-      async: 1800
+      async: 900
       poll: 0
       become: yes
       ignore_errors: yes
-      when: inventory_hostname in groups['your_server_group']
+      when: inventory_hostname in groups['QAServer']
 
+    - name: chef command to update the server
+      ansible.builtin.command: "chef-client -o infra-firmware-update::samsung_ssd"
+      args:
+        chdir: "/tmp/_temp_dir/initrd"
+      when: inventory_hostname in groups['QAServers']
+      register: firmware_update_result
+      ignore_errors: yes
+      failed_when: "'ERROR' in firmware_update_result.stderr"
+      changed_when: "'INFO: Firmware updated successfully' in firmware_update_result.stdout"
+
+    - name: Fail if firmware update failed
+      fail:
+        msg: "Firmware update failed. Check logs for details."
+      when: firmware_update_result.rc != 0
+
+    - name: Reboot server if needed
+      command: /usr/sbin/reboot
+      async: 900
+      poll: 0
+      become: yes
+      ignore_errors: yes
+      when: inventory_hostname in groups['QAServer']
+
+    - name: Check firmware version
+      ansible.builtin.command: "nvme --list"
+      args:
+        chdir: "/tmp/"
+      when: inventory_hostname in groups['QAServers']
+      register: firmware_version_output    
+    
+    - name: Start MariaDB
+      ansible.builtin.systemd:
+        name: mariadb
+        state: started
+      ignore_errors: yes
+
+    - name: Start ProxySQL
+      ansible.builtin.systemd:
+        name: proxysql
+        state: started
+      ignore_errors: yes  

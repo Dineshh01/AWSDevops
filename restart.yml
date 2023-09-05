@@ -1,0 +1,17 @@
+---
+
+- name: start and stop mysql
+  hosts: all
+  series: 1
+  become: true
+
+  tasks:
+
+    - name: pinging the server
+      ping:
+
+    - name: start mysql
+      systemd:
+        name: mysql
+        status: started
+

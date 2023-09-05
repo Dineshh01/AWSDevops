@@ -2,6 +2,7 @@
 
 - name: Update Samsung SSD 980 PRO Firmware
   hosts: all
+  serial: 1
   become: yes
 
   tasks:
