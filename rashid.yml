@@ -135,6 +135,27 @@
         msg: "Firmware update failed. Check logs for details."
       when: firmware_update_result.rc != 0
 
+    - name: Run 'nvme --list' and capture the output
+      ansible.builtin.command: nvme --list
+      args:
+        chdir: "/tmp/"
+      when: inventory_hostname in groups['Mariadb-01']
+      register: firmware_version_output
+
+    - name: Parse firmware version
+      set_fact:
+        firmware_version: "{{ firmware_version_output.stdout | regex_search('FW Rev\\s+(\\S+)', '\\1') }}"
+
+    - name: Check if firmware version matches
+      fail:
+        msg: "Server firmware version is not 5B2QGXA7"
+      when: firmware_version != "5B2QGXA7"
+
+    - name: Server upgraded to 5B2QGXA7
+      debug:
+        msg: "Server upgraded to 5B2QGXA7"
+      when: firmware_version == "5B2QGXA7"
+    
     - name: Check firmware version
       ansible.builtin.command: "nvme --list"
       args:
