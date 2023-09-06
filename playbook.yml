@@ -1,90 +1,56 @@
 ---
-- name: Upgrade Samsung SSD 980 PRO Firmware
+- name: Download Samsung SSD firmware and perform actions
   hosts: all
-  become: yes
-
+  become: true
+  serial: 
+    1
   tasks:
-    - name: Set HTTP Proxy Environment Variable
-      ansible.builtin.export:
-        var: https_proxy
-        value: "http://pkg.proxy.prod.jp.local:10080"
+    - name: Set the HTTPS proxy
+      ansible.builtin.shell: export https_proxy=http://pkg.proxy.prod.jp.local:10080
+      environment:
+        https_proxy: http://pkg.proxy.prod.jp.local:10080
+      register: set_proxy
+      changed_when: false 
 
-    - name: Download Samsung SSD 980 PRO Firmware ISO
+    - name: Download Samsung SSD firmware ISO
       ansible.builtin.get_url:
-        url: "https://semiconductor.samsung.com/resources/software-resources/Samsung_SSD_980_PRO_5B2QGXA7.iso"
-        dest: "/tmp/Samsung_SSD_980_PRO_5B2QGXA7.iso"
+        url: https://semiconductor.samsung.com/resources/software-resources/Samsung_SSD_980_PRO_5B2QGXA7.iso
+        dest: /tmp/Samsung_SSD_980_PRO_5B2QGXA7.iso
 
-    - name: Create Firmware Directory
+    - name: Create firmware directory
       ansible.builtin.file:
-        path: "/tmp/Samsung_SSD_980_PRO_firmware"
+        path: /tmp/Samsung_SSD_980_PRO_firmware
         state: directory
 
-    - name: Mount ISO Image
+    - name: Mount ISO
       ansible.builtin.mount:
-        src: "/tmp/Samsung_SSD_980_PRO_5B2QGXA7.iso"
-        path: "/tmp/Samsung_SSD_980_PRO_firmware"
+        src: /path/to/Samsung_SSD_980_PRO_5B2QGXA7.iso
+        path: /path/to/Samsung_SSD_980_PRO_firmware
         fstype: iso9660
         state: mounted
-        opts: loop
 
-    - name: Create Temporary Directory
+    - name: Create _temp_dir directory
       ansible.builtin.file:
-        path: "/tmp/_temp_dir"
+        path: /tmp/_temp_dir
         state: directory
 
-    - name: Copy initrd File
+    - name: Copy initrd
       ansible.builtin.copy:
-        src: "/tmp/Samsung_SSD_980_PRO_firmware/initrd"
-        dest: "/tmp/_temp_dir/initrd"
+        src: /tmp/Samsung_SSD_980_PRO_firmware/initrd
+        dest: /tmp/_temp_dir/initrd
 
     - name: Extract initrd
-      ansible.builtin.command: "zcat /tmp/_temp_dir/initrd | cpio -i -c"
+      ansible.builtin.command: zcat initrd | cpio -i -c
       args:
-        chdir: "/tmp/_temp_dir"
-      become_user: root
+        chdir: /tmp/_temp_dir
 
-    - name: Install unzip Package
+    - name: Install unzip using yum
       ansible.builtin.yum:
         name: unzip
         state: present
 
     - name: Run fumagician
-      ansible.builtin.command: "root/fumagician/fumagician"
+      ansible.builtin.command: root/fumagician/fumagician 2> root/fumagician/log
       args:
-        chdir: "/tmp/_temp_dir"
-      become_user: root
-      async: 3600 
-      poll: 
-
-    - name: Checking for any Media errors before the upgradation
-      command: media error command
-      register: media_error_check
-      ignore_errors: yes
-
-    - name: Cancel the operation if media error occurs
-      fail:
-        msg: "Media errors detected. Firmware update cannot proceed."
-      when: "'Media error' in media_error_check.stderr"
-
-    - name: Copy firmware update files to the server
-      copy:
-        src:  path
-        dest: /tmp/
-      when: inventory_hostname in groups['your_server_group']
-
-    - name: Run firmware update
-      command: /path/to/firmware/update/command
-      args:
-        chdir: /tmp/
-      when: inventory_hostname in groups['your_server_group']
-      register: firmware_update_result
-      ignore_errors: yes
-
-    - name: Reboot server if needed
-      command: /usr/sbin/reboot
-      async: 1
-      poll: 0
-      become: yes
-      ignore_errors: yes
-      when: inventory_hostname in groups['your_server_group']
+        chdir: /tmp/_temp_dir
 
